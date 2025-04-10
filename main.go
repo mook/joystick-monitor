@@ -23,16 +23,17 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/unrud/joystick-monitor/inotify"
-	"github.com/unrud/joystick-monitor/joystick"
-	"github.com/unrud/joystick-monitor/processes"
-	"github.com/unrud/joystick-monitor/screensaver"
 	"log"
 	"os"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/unrud/joystick-monitor/inotify"
+	"github.com/unrud/joystick-monitor/joystick"
+	"github.com/unrud/joystick-monitor/processes"
+	"github.com/unrud/joystick-monitor/screensaver"
 )
 
 const (
@@ -160,15 +161,10 @@ func main() {
 	}()
 	inputFileMonitor := orFatal(inotify.NewFileOpenCloseMonitor("/dev/input"))
 	defer inputFileMonitor.Close()
-	screensaver := orFatal(screensaver.NewScreensaver(appName, "user activity"))
+	screensaver := orFatal(screensaver.NewScreensaver())
 	defer screensaver.Close()
 	rescanTimer := time.NewTimer(0)
 	rescanTimerSet := true
-	uninhibitTimer := time.NewTimer(0)
-	if !uninhibitTimer.Stop() {
-		<-uninhibitTimer.C
-	}
-	uninhibitTimerSet := false
 	userActivity := make(chan struct{})
 	for {
 		select {
@@ -197,20 +193,7 @@ func main() {
 		case err := <-inputFileMonitor.E:
 			checkFatal(err)
 		case <-userActivity:
-			if uninhibitTimerSet {
-				if !uninhibitTimer.Stop() {
-					<-uninhibitTimer.C
-				}
-			} else {
-				checkFatal(screensaver.Inhibit())
-				log.Println("inhibit")
-			}
-			uninhibitTimer.Reset(inhibitTimeout)
-			uninhibitTimerSet = true
-		case <-uninhibitTimer.C:
-			uninhibitTimerSet = false
-			checkFatal(screensaver.Uninhibit())
-			log.Println("uninhibit")
+			checkFatal(screensaver.Simulate())
 		case <-rescanTimer.C:
 			rescanTimerSet = false
 			openJoystickPaths := orFatal(processes.FindOpenFiles(orFatal(joystick.ListAllJoysticks()), ignoreMarker))

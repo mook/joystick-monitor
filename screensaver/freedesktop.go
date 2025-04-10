@@ -20,20 +20,15 @@
 package screensaver
 
 import (
-	"errors"
-	"fmt"
 	"github.com/godbus/dbus/v5"
 )
 
 type Screensaver struct {
-	bus          *dbus.Conn
-	screenSaver  dbus.BusObject
-	name, reason string
-
-	cookie uint32
+	bus         *dbus.Conn
+	screenSaver dbus.BusObject
 }
 
-func NewScreensaver(name, reason string) (*Screensaver, error) {
+func NewScreensaver() (*Screensaver, error) {
 	bus, err := dbus.SessionBusPrivate()
 	if err != nil {
 		return nil, err
@@ -52,35 +47,11 @@ func NewScreensaver(name, reason string) (*Screensaver, error) {
 		bus: bus,
 		screenSaver: bus.Object("org.freedesktop.ScreenSaver",
 			"/org/freedesktop/ScreenSaver"),
-		name:   name,
-		reason: reason,
 	}, nil
 }
 
-func (s *Screensaver) Inhibit() error {
-	if s.cookie != 0 {
-		return errors.New("Screensaver already inhibited")
-	}
-	var cookie uint32
-	if err := s.screenSaver.Call("org.freedesktop.ScreenSaver.Inhibit", 0, s.name, s.reason).Store(&cookie); err != nil {
-		return err
-	}
-	if cookie == 0 {
-		return fmt.Errorf("invalid cookie (%d) received", s.cookie)
-	}
-	s.cookie = cookie
-	return nil
-}
-
-func (s *Screensaver) Uninhibit() error {
-	if s.cookie == 0 {
-		return errors.New("Screensaver not inhibited")
-	}
-	if err := s.screenSaver.Call("org.freedesktop.ScreenSaver.UnInhibit", 0, s.cookie).Store(); err != nil {
-		return err
-	}
-	s.cookie = 0
-	return nil
+func (s *Screensaver) Simulate() error {
+	return s.screenSaver.Call("org.freedesktop.ScreenSaver.SimulateUserActivity", 0).Store()
 }
 
 func (s *Screensaver) Close() error {
