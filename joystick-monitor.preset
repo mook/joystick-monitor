@@ -1,0 +1,2 @@
+# systemd preset file for joystick-monitor; see man page systemd.preset(5)
+enable joystick-monitor.service
