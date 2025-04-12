@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"syscall"
@@ -38,7 +39,6 @@ import (
 
 const (
 	appName = "joystick-monitor"
-	version = "0.0.3"
 
 	ignoreMarker      = "ignore-joystick"
 	maxRescanInterval = time.Second
@@ -144,7 +144,11 @@ func main() {
 	}
 	flag.Parse()
 	if showVersion {
-		fmt.Println(version)
+		if buildInfo, ok := debug.ReadBuildInfo(); ok {
+			fmt.Println(buildInfo.Main.Version)
+		} else {
+			fmt.Println("(no version available)")
+		}
 		return
 	}
 
